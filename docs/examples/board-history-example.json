@@ -1,0 +1,41 @@
+{
+  "sessions": [
+    {
+      "id": "academic-session-001",
+      "date": "2026-03-01",
+      "topic": "Phase 1A experiment design review",
+      "proposals_total": 21,
+      "proposals_after_refinement": 9,
+      "proposals_accepted": 9,
+      "verdict": "PROCEED_WITH_CHANGES",
+      "expert_stats": {
+        "methodology-critic": {"proposed": 3, "accepted": 3, "fatal_found": false},
+        "experiment-designer": {"proposed": 3, "accepted": 2, "fatal_found": false},
+        "econometrician": {"proposed": 3, "accepted": 2, "fatal_found": false},
+        "devil-reviewer": {"proposed": 3, "accepted": 1, "fatal_found": true},
+        "domain-expert": {"proposed": 3, "accepted": 2, "fatal_found": false},
+        "literature-scout": {"proposed": 3, "accepted": 3, "fatal_found": false},
+        "reproducibility-auditor": {"proposed": 3, "accepted": 2, "fatal_found": false}
+      }
+    },
+    {
+      "id": "academic-session-002",
+      "date": "2026-03-03",
+      "topic": "Complete paper review: quality, acceptance, rejection reasons",
+      "proposals_total": 21,
+      "proposals_after_refinement": 10,
+      "verdict": "MAJOR_REVISION_REQUIRED",
+      "fatal_flaw": "Mechanical tautology: core variable defined using future data creates definitional correlation with dependent variable",
+      "convergence": "7/7 experts flagged fatal flaw (unprecedented unanimity)",
+      "expert_stats": {
+        "methodology-critic": {"proposed": 3, "hit_fatal": true, "quality": 5},
+        "experiment-designer": {"proposed": 3, "hit_fatal": true, "quality": 5},
+        "econometrician": {"proposed": 3, "hit_fatal": true, "quality": 5},
+        "devil-reviewer": {"proposed": 3, "hit_fatal": true, "quality": 5, "veto_used": true},
+        "domain-expert": {"proposed": 3, "hit_fatal": true, "quality": 4},
+        "literature-scout": {"proposed": 3, "hit_fatal": true, "quality": 4},
+        "reproducibility-auditor": {"proposed": 3, "hit_fatal": true, "quality": 4}
+      }
+    }
+  ]
+}
