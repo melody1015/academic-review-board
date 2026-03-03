@@ -92,6 +92,40 @@ This project simulates that process **before** you submit — with 7 AI experts 
 
 *The human author — who had run 10 robustness tests that all "passed" — missed this because they were too close to the work. This single finding justified the entire system's existence.*
 
+## When to Use: 4-Stage Research Lifecycle
+
+Don't wait until you've written the full paper. Use the review board at multiple stages — earlier catches save more time.
+
+```
+Stage 1 ─ IDEA          "Is this worth pursuing?"
+           │              3 experts · 1-page proposal · ~20K tokens · <$1
+           │              Domain Expert + Literature Scout + Devil Reviewer
+           │              Key question: Has this been done? Is the gap real?
+           │
+Stage 2 ─ DESIGN         "Is my experiment sound?"
+           │              7 experts · experiment plan + data description · ~66K tokens
+           │              Focus: Methodology Critic + Experiment Designer + Econometrician
+           │              Key question: Look-ahead bias? Identification strategy?
+           │              ⚠️ This is the highest-ROI stage — catching a design flaw here
+           │              saves weeks of wasted coding and analysis
+           │
+Stage 3 ─ RESULTS        "Do my findings hold up?"
+           │              7 experts · results + tables + robustness checks · ~66K tokens
+           │              Focus: Econometrician + Devil Reviewer + Reproducibility Auditor
+           │              Key question: Mechanical artifact? Alternative explanations?
+           │
+Stage 4 ─ PRE-SUBMIT     "Will Reviewer 2 kill this?"
+                          7 experts · complete paper draft · ~66K tokens
+                          Focus: All experts, especially Devil Reviewer
+                          Key question: Fatal flaws? Contribution clarity? Acceptance odds?
+```
+
+**Stage 1** is lightweight — skip Phases 2-3, just collect independent assessments. **Stages 2-4** use the full 4-phase protocol.
+
+**Real example**: In our deployment, Stage 2 (design review) identified 9 actionable improvements. Stage 4 (pre-submission) caught a fatal tautological flaw that invalidated the core results. If we had caught it at Stage 2, we would have saved 2+ weeks of coding and analysis.
+
+> **Rule of thumb**: If your research involves writing code, run at least Stage 2 before you start coding.
+
 ## Quick Start
 
 ### Prerequisites
