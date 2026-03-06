@@ -2,7 +2,7 @@
 
 **AI-powered multi-agent peer review for research papers — catch fatal flaws before submission.**
 
-> 7 specialized expert agents + 4-phase deliberation protocol + weighted voting. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
+> N specialized expert agents (paradigm-adaptive) + 4-phase deliberation protocol + weighted voting. 6 paradigms supported. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
 
 ---
 
@@ -10,13 +10,13 @@
 
 You've written a paper. You think it's good. You submit it. Three months later, Reviewer 2 finds a fatal flaw you could have caught on day one.
 
-This project simulates that process **before** you submit — with 7 AI experts who independently review your work, debate each other's findings anonymously, and vote on what matters most. In our first real deployment, all 7 experts unanimously identified a tautological flaw in our variable definition that the human author missed entirely.
+This project simulates that process **before** you submit — with N AI experts (dynamically loaded per paradigm) who independently review your work, debate each other's findings anonymously, and vote on what matters most. In our first real deployment, all experts unanimously identified a tautological flaw in our variable definition that the human author missed entirely.
 
 ## What Makes This Different
 
 | Feature | Single-Agent Review | AgentReview | MARG | **This Project** |
 |---------|-------------------|-------------|------|-----------------|
-| Multi-perspective | ❌ | ✅ 3-dim | ✅ dimension-split | ✅ **7 deep expert roles** |
+| Multi-perspective | ❌ | ✅ 3-dim | ✅ dimension-split | ✅ **N paradigm-specific expert roles** |
 | Cross-discussion | ❌ | ✅ rebuttal | ✅ internal | ✅ **anonymous + randomized** |
 | Weighted voting | ❌ | ❌ | ❌ | ✅ **core 5 votes / general 3** |
 | Expert memory | ❌ | ❌ | ❌ | ✅ **persistent .memory.md** |
@@ -48,7 +48,7 @@ This project simulates that process **before** you submit — with 7 AI experts 
             └──────────────┼──────────────┼───────────────┘
                            ▼
               ┌─────────────────────────┐
-              │  Phase 1: Independent   │  21 proposals (3 per expert)
+              │  Phase 1: Independent   │  N×3 proposals (3 per expert)
               │  Phase 2: Cross-review  │  Anonymous debate, random order
               │  Phase 3: Refinement    │  GM merges/prunes → 10-14
               │  Phase 4: Weighted vote │  Core 5票 + General 3票 + FATAL +3
@@ -59,24 +59,38 @@ This project simulates that process **before** you submit — with 7 AI experts 
                     └──────────────┘
 ```
 
-## The 7 Experts
+## Expert Roles (Paradigm-Adaptive)
 
-### Core Experts (5 votes each — "Methodology Triangle")
+Experts are loaded dynamically from `prompts/{paradigm}/roster.md`. Each paradigm defines 7-8 roles across 3 layers:
 
-| Role | What They Catch | Real-World Analog |
+### Layer 2 — Core Experts (5 votes each — "Methodology Triangle")
+
+| Role | Paradigm-Specific Name | What They Catch |
+|------|----------------------|----------------|
+| Methodology Critic | (shared) | Identification failures, causal inference gaps |
+| Experiment Designer | (shared) | Design contamination, look-ahead bias |
+| Statistician | Econometrician / ML Statistician / Biostatistician / Psychometrician / Metrologist / Bioinformatician | Wrong tests, missing corrections, effect size inflation |
+
+### Layer 1 + 3 — General + Optional (3 votes each)
+
+| Role | What They Catch | Quality Assurance |
 |------|----------------|-------------------|
-| **Methodology Critic** | Look-ahead bias, identification failures, causal inference gaps | Methods referee at JF/JFE/RFS |
-| **Experiment Designer** | Sample contamination, point-in-time violations, out-of-sample degradation | Quant fund researcher (ex-AQR/Two Sigma) |
-| **Econometrician** | Wrong statistical tests, missing multiple-testing corrections, effect size inflation | Financial econometrics professor |
+| Devil Reviewer | Fatal flaws, claim-evidence gaps | **Red Flags** (paradigm-specific) |
+| Domain Expert | Theory-methodology disconnect | **Rejection Triggers** |
+| Literature Scout | Missing papers, counter-evidence | **Rejection Triggers** |
+| Reproducibility Auditor | Data provenance, FAIR violations | **Graded Rubric** (authority-backed ✅/⚠️/❌) |
+| Ethics Auditor (optional) | IRB/consent/data ethics | **Rejection Triggers** (COPE/Helsinki) |
 
-### General Experts (3 votes each)
+### Supported Paradigms
 
-| Role | What They Catch | Real-World Analog |
-|------|----------------|-------------------|
-| **Devil Reviewer** | Fatal flaws, claim-evidence gaps, incremental contribution | The dreaded "Reviewer 2" |
-| **Domain Expert** | Theory-methodology disconnect, wrong literature anchoring | Finance professor (replaceable for other fields) |
-| **Literature Scout** | Missing seminal papers, incorrect positioning, counter-evidence | Research librarian + systematic review specialist |
-| **Reproducibility Auditor** | Data provenance gaps, code duplication, FAIR violations | Data auditor (RFS code-sharing policy) |
+| Paradigm | Layer 2 Statistician | Example Fields |
+|----------|---------------------|----------------|
+| `economics-finance` | Econometrician | 金融、经济学、会计 |
+| `cs-ai` | ML Statistician | 机器学习、NLP、CV |
+| `clinical-epidemiology` | Biostatistician | 临床试验、流行病学 |
+| `experimental-behavioral` | Psychometrician | 心理学、教育、行为经济 |
+| `natural-science-engineering` | Metrologist | 物理、化学、材料、工程 |
+| `biology-omics` | Bioinformatician | 基因组学、转录组、蛋白质组 |
 
 ## Real Results
 
@@ -194,18 +208,20 @@ Inspired by [BMJ's reviewer training RCT](https://pubmed.ncbi.nlm.nih.gov/150440
 
 ## Code Architecture Integration (GitNexus)
 
-For papers with a codebase (empirical studies, computational experiments), the Reproducibility Auditor receives a **code architecture digest** generated from [GitNexus](https://github.com/abhigyanpatwari/GitNexus):
+For papers with a codebase, **all experts** receive a shared **code architecture digest** generated from [GitNexus](https://github.com/abhigyanpatwari/GitNexus). Each role uses it differently (see `_shared/code-context-guide.md`):
 
 ```bash
-python3 scripts/build-knowledge.py --topic "实验设计look-ahead bias审查" --repo my-project
+python3 scripts/build-knowledge.py --topic "实验设计look-ahead bias审查" --paradigm economics-finance
 ```
+
+The generator is **paradigm-aware** — code-light paradigms (clinical, behavioral) gracefully skip GitNexus if no code repo exists.
 
 The generator automatically:
 1. **Translates** non-English topics to English code keywords (via LLM)
 2. **Queries** the code knowledge graph for relevant functions and data flows
 3. **Analyzes** blast radius of key symbols
 4. **Detects** code duplication risks (same function defined in multiple files)
-5. **Formats** a Markdown digest for the Reproducibility Auditor
+5. **Formats** a Markdown digest shared by all experts
 
 Example output:
 ```
@@ -218,13 +234,13 @@ Example output:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| Expert count | 7 | Add/remove roles; keep the "methodology triangle" |
+| Paradigm | `economics-finance` | Set via `--paradigm` flag; loads roles from `prompts/{paradigm}/roster.md` |
+| Expert count | 7-8 (per paradigm) | Defined in roster.md; keep the "methodology triangle" |
 | Vote weights | Core 5 / General 3 | Set in each expert's Phase 4 section |
 | Phase 2 (cross-review) | On | Skip to save time (reduces quality) |
 | Phase 3 (refinement) | On | Skip to let GM go straight to voting |
 | FATAL bonus | +3 votes | Adjust in GM prompt |
-| Domain Expert | Finance | Replace `domain-expert-finance.md` for CS/med/physics |
-| GitNexus | On | Auto-skips if not indexed |
+| GitNexus | Paradigm-aware | Auto-skips for code-light paradigms (clinical, behavioral) |
 | Language | Any | Cross-lingual keyword extraction for non-English topics |
 
 ## Cost

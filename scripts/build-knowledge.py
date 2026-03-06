@@ -3,20 +3,22 @@
 Academic Review Board — Knowledge Pack Generator (with GitNexus)
 
 通用模板。为学术委员会生成知识包附录。
-GitNexus 代码架构上下文仅注入给 Reproducibility Auditor。
+GitNexus 代码架构上下文注入知识包，所有专家共享（使用指南见 _shared/code-context-guide.md）。
 
 用法:
-  python3 review-board/scripts/build-knowledge.py --topic "实验设计评审" --repo my-project
-  python3 review-board/scripts/build-knowledge.py --topic "Complete Paper Review"  # 自动检测当前 repo
+  python3 scripts/build-knowledge.py --topic "实验设计评审" --paradigm economics-finance
+  python3 scripts/build-knowledge.py --topic "Complete Paper Review"  # 自动检测 repo, 默认 economics-finance
+  python3 scripts/build-knowledge.py --topic "ML模型评审" --paradigm cs-ai
 
 输出:
-  review-board/cache/code-architecture-digest.md  (Reproducibility Auditor 专用附录)
+  review-board/cache/code-architecture-digest.md  (注入知识包，所有专家共享)
   review-board/cache/build-knowledge-log.json     (运行日志)
 
 设计原则 (2026-03-04):
   GitNexus 集成在知识包生成层，不在编排层。
   跨语言映射（中文议题 → 英文代码关键词）在此脚本中完成。
   orchestration.md 只需读取输出文件，不需要跑 GitNexus CLI。
+  范式感知：部分范式（clinical, behavioral）可能无代码库，自动跳过 GitNexus。
 """
 
 import argparse
@@ -212,15 +214,15 @@ def build_gitnexus_pack(topic: str) -> dict:
 
 # ── Step 4-5: 角色过滤 + 格式化输出 ──────────────────────────────
 
-def format_digest(topic: str, pack: dict) -> str:
+def format_digest(topic: str, pack: dict, paradigm: str = "") -> str:
     """
-    生成 Reproducibility Auditor 专用的 Markdown 摘要。
-    其他角色不需要此文件。
+    生成所有专家共享的 Code Architecture Digest。
+    各角色按 _shared/code-context-guide.md 从自身视角利用。
     """
     lines = [
         "## Code Architecture Digest (GitNexus)",
         "",
-        f"> Auto-generated for Reproducibility Auditor | Topic: {topic}",
+        f"> Auto-generated for all experts | Paradigm: {paradigm} | Topic: {topic}",
         f"> Search query: `{pack.get('search_query', 'N/A')}`",
         "",
     ]
@@ -289,29 +291,52 @@ def main():
         description="Academic Review Board — Knowledge Pack Generator (with GitNexus)"
     )
     parser.add_argument("--topic", required=True, help="评审议题")
+    parser.add_argument("--paradigm", default="economics-finance",
+                        choices=["economics-finance", "clinical-epidemiology",
+                                 "cs-ai", "experimental-behavioral",
+                                 "natural-science-engineering", "biology-omics"],
+                        help="研究范式 (default: economics-finance)")
     parser.add_argument("--repo", help="GitNexus repo name (auto-detected if omitted)")
     parser.add_argument("--dry-run", action="store_true", help="只打印不写文件")
     args = parser.parse_args()
 
     global REPO_NAME
     REPO_NAME = args.repo or _detect_repo_name()
-    print(f"   Repo:  {REPO_NAME}")
+    print(f"   Repo:     {REPO_NAME}")
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     print(f"📦 Knowledge Pack Generator")
-    print(f"   Topic: {args.topic}")
-    print(f"   Time:  {datetime.now().isoformat()}")
+    print(f"   Topic:    {args.topic}")
+    print(f"   Paradigm: {args.paradigm}")
+    print(f"   Time:     {datetime.now().isoformat()}")
     print()
 
-    # 构建 GitNexus 上下文
-    pack = build_gitnexus_pack(args.topic)
+    # 范式感知：判断是否需要 GitNexus
+    CODE_LIGHT_PARADIGMS = {"clinical-epidemiology", "experimental-behavioral"}
 
-    if not pack:
-        print("  ❌ GitNexus 未返回结果，跳过 digest 生成")
-        sys.exit(0)
+    if args.paradigm in CODE_LIGHT_PARADIGMS:
+        print(f"  ℹ️  范式 [{args.paradigm}] 通常不涉及代码仓库")
+        print(f"      如果本研究确实有代码（如 R/SAS 分析脚本），仍会尝试 GitNexus")
+        pack = build_gitnexus_pack(args.topic)
+        if not pack:
+            print("  ℹ️  GitNexus 无结果（预期行为），跳过 digest 生成")
+            log = {
+                "timestamp": datetime.now().isoformat(),
+                "topic": args.topic,
+                "paradigm": args.paradigm,
+                "skipped": True,
+                "reason": "code-light paradigm, no GitNexus results",
+            }
+            LOG_PATH.write_text(json.dumps(log, ensure_ascii=False, indent=2), encoding="utf-8")
+            sys.exit(0)
+    else:
+        pack = build_gitnexus_pack(args.topic)
+        if not pack:
+            print("  ❌ GitNexus 未返回结果，跳过 digest 生成")
+            sys.exit(0)
 
     # 格式化为 Markdown
-    digest = format_digest(args.topic, pack)
+    digest = format_digest(args.topic, pack, paradigm=args.paradigm)
 
     if args.dry_run:
         print("\n--- DRY RUN (不写文件) ---\n")
@@ -324,6 +349,7 @@ def main():
         log = {
             "timestamp": datetime.now().isoformat(),
             "topic": args.topic,
+            "paradigm": args.paradigm,
             "search_query": pack.get("search_query", ""),
             "related_files_count": len(pack.get("related_files", [])),
             "functions_count": len(pack.get("related_functions", [])),

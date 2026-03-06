@@ -5,7 +5,7 @@ description: "AI Academic Review Board — multi-agent peer review for research 
 
 # Academic Review Board — AI 学术同行评审
 
-用 LLM multi-agent 模拟学术同行评审，在论文投稿前发现方法论缺陷。
+用 LLM multi-agent 模拟学术同行评审，在论文投稿前发现方法论缺陷。**支持多研究范式（v2.0）。**
 
 ## 文献基础
 
@@ -18,32 +18,45 @@ description: "AI Academic Review Board — multi-agent peer review for research 
 ## 架构
 
 ```
-7 位专家 + 1 位 GM (General Manager)
+8 位专家 + 1 位 GM (General Manager)
 4 阶段: 独立评审 → 交叉讨论 → 精炼去重 → 加权投票 + GM 裁决
+6 个研究范式: 经济金融 | CS/AI | 临床流行病 | 实验行为 | 自然工程 | 生物组学
 ```
 
-### 专家分层与投票权
+### 范式选择
 
-**核心专家（方法论三角）— 每人 5 票：**
+| 范式 | 目录 | 状态 | 典型领域 |
+|------|------|------|------|
+| 实证经济与金融 | `economics-finance/` | ✅ | 金融、经济、会计 |
+| 计算机科学与 AI | `cs-ai/` | ✅ | ML、NLP、CV、机器人 |
+| 临床与流行病学 | `clinical-epidemiology/` | ✅ | 医学、药学、公卫 |
+| 实验与行为科学 | `experimental-behavioral/` | ✅ | 心理、教育、行为经济 |
+| 自然科学与工程 | `natural-science-engineering/` | ✅ | 物理、化学、材料 |
+| 生物与组学 | `biology-omics/` | ✅ | 基因组、神经、生态 |
 
-| 角色 | Prompt | 覆盖 |
-|------|--------|------|
-| Methodology Critic | `methodology-critic.md` | 研究设计、因果推断、look-ahead |
-| Experiment Designer | `experiment-designer.md` | 样本构建、point-in-time 设计 |
-| Econometrician | `econometrician.md` | 统计方法、多重检验、效应量 |
+> 范式选择看方法论，不看院系。详见 `paradigm_role_structure.md`。
 
-**一般专家 — 每人 3 票：**
+### 三层角色架构
 
-| 角色 | Prompt | 覆盖 |
-|------|--------|------|
-| Devil Reviewer | `devil-reviewer.md` | 致命缺陷、claim-evidence gap |
-| Domain Expert | `domain-expert-finance.md` | 理论根基（可替换为其他领域） |
-| Literature Scout | `literature-scout.md` | 文献覆盖、定位准确性 |
-| Reproducibility Auditor | `reproducibility-auditor.md` | 数据溯源、代码复现 |
+**Layer 2 核心专家（方法论三角）— 每人 5 票：**
 
-**投票力分布：** 核心 3×5=15 (56%) / 一般 4×3=12 (44%)
+| 角色 | 经济金融版 | CS/AI 版 | 覆盖 |
+|------|-----------|---------|------|
+| Methodology Critic | 识别策略/因果推断 | 问题设定/方法创新性 | 研究设计 |
+| Experiment Designer | 回测/point-in-time | 消融/基线公平性 | 实验设计 |
+| Statistician | Fama-MacBeth/年度FDR | bootstrap/Friedman | 统计分析 |
 
-**Devil Reviewer 特权：** FATAL 标记的提案自动 +3 分
+**Layer 1 + 3 一般专家 — 每人 3 票：**
+
+| 角色 | 覆盖 | 层 |
+|------|------|---|
+| Devil Reviewer | 致命缺陷、claim-evidence gap | L1 |
+| Domain Expert | 理论根基（按领域完全不同） | L3 |
+| Literature Scout | 文献覆盖、定位准确性 | L1 |
+| Reproducibility Auditor | 数据溯源、代码复现 | L1 |
+| Ethics & Compliance | 研究伦理、合规 | L3 |
+
+**投票力分布：** 核心 3×5=15 / 一般 N×3（N=4-5）
 
 ### GM 职责
 - Phase 3 精炼执行（合并/去重/淘汰/安全审查）
@@ -89,11 +102,11 @@ description: "AI Academic Review Board — multi-agent peer review for research 
 评审前运行知识包生成器，为 Reproducibility Auditor 注入代码架构上下文：
 
 ```bash
-python3 {project}/review-board/scripts/build-knowledge.py --topic "{议题}"
+python3 scripts/build-knowledge.py --topic "{议题}" --paradigm "{范式名}"
 ```
 
 5 步流程：跨语言关键词提取 → GitNexus 查询 → blast radius 展开 → 角色过滤 → Markdown 输出。
-详见 `scripts/build-knowledge.py`。
+`--paradigm` 缺省时默认 `economics-finance`。
 
 **前提**：项目已用 `gitnexus analyze` 索引。未索引时自动跳过，不影响其他专家。
 
@@ -127,16 +140,19 @@ python3 {project}/review-board/scripts/build-knowledge.py --topic "{议题}"
 mkdir -p {project}/review-board/{prompts,scripts,sessions,cache}
 
 # 2. 复制模板（从 skill 目录）
-cp ~/clawd/skills/academic-review-board/prompts/*.md {project}/review-board/prompts/
-cp ~/clawd/skills/academic-review-board/scripts/build-knowledge.py {project}/review-board/scripts/
-cp ~/clawd/skills/academic-review-board/templates/* {project}/review-board/cache/
+cp -r ~/academic-review-board/prompts/_shared {project}/review-board/prompts/
+cp -r ~/academic-review-board/prompts/economics-finance {project}/review-board/prompts/  # 或你需要的范式
+cp ~/academic-review-board/prompts/orchestration.md {project}/review-board/prompts/
+cp ~/academic-review-board/prompts/gm-academic.md {project}/review-board/prompts/
+cp ~/academic-review-board/scripts/build-knowledge.py {project}/review-board/scripts/
+cp ~/academic-review-board/templates/* {project}/review-board/cache/
 
 # 3. 自定义
-#    - gm-academic.md: 修改 Security Boundaries（每个项目不同）
-#    - domain-expert-finance.md: 如果不是金融方向，替换为对应领域专家
-#    - build-knowledge.py: 修改 REPO_NAME 为你的项目名
+#    - gm-academic.md: 修改 Security Boundaries
+#    - roster.md: 确认角色配置和可选角色启用
+#    - build-knowledge.py: 修改 REPO_NAME
 
-# 4. 索引代码库（可选，Reproducibility Auditor 用）
+# 4. 索引代码库（可选）
 cd {project} && gitnexus analyze
 ```
 
@@ -144,23 +160,24 @@ cd {project} && gitnexus analyze
 
 ```bash
 # 1. 生成知识包附录
-python3 review-board/scripts/build-knowledge.py --topic "{议题}"
+python3 scripts/build-knowledge.py --topic "{议题}" --paradigm "{范式}"
 
 # 2. 准备知识包 (knowledge-pack.md)
 #    包含：议题说明 + 论文草稿/实验方案 + 参考文献 + 安全边界
 
 # 3. 按 orchestration.md 执行 4 阶段
-#    Phase 1-4 通过 sessions_spawn 并行调度 7 位专家
+#    Phase 0: 确认范式 + 加载 roster
+#    Phase 1-4: 通过 sessions_spawn 并行调度 N 位专家
 ```
 
 ### 自定义选项
 
 | 可调项 | 默认 | 说明 |
 |--------|------|------|
-| 专家数量 | 7 | 可增减，但保持核心三角（方法论/实验/计量） |
-| 投票权重 | 核心5/一般3 | 可改为等权（所有人3票） |
-| Phase 2 交叉讨论 | 开启 | 时间紧可跳过（牺牲质量换速度） |
-| Phase 3 精炼 | 开启 | 可跳过让 GM 直接进投票 |
+| 研究范式 | economics-finance | 6 个范式可选，看方法论不看院系 |
+| 专家数量 | 7-8 | 由 roster.md 动态配置（含可选角色） |
+| 投票权重 | 核心5/一般3 | 可改为等权 |
+| Phase 2 交叉讨论 | 开启 | 时间紧可跳过 |
 | FATAL 机制 | +3 分 | 可关闭或调整加分值 |
-| Domain Expert | 金融 | 替换为计算机/医学/物理等任何领域 |
+| Ethics Auditor | 按范式 | 医学/心理必开，金融/工程可选 |
 | GitNexus 集成 | 开启 | 无代码库的纯理论论文可关闭 |

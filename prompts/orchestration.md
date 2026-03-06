@@ -1,32 +1,67 @@
 # Academic Review Board — Orchestration Protocol (Template)
 
 > 参考框架: AgentReview (EMNLP 2024) + MARG (Allen AI 2024) + PRE (CIKM 2024)
-> 版本: v1.1 (2026-03-04) — 从 ipl-paper 提取为通用模板
+> 版本: v2.0 (2026-03-06) — 支持多范式动态 roster 加载
 
 ---
 
 ## 1. 角色与权重
 
-### 1.1 专家分层
+### 1.1 范式选择
 
-**核心专家（方法论三角）— 每人5票：**
-| 角色 | 文件 | 权重根据 |
-|------|------|---------|
-| Methodology Critic | methodology-critic.md | 方法论缺陷=~30%拒稿原因 |
-| Experiment Designer | experiment-designer.md | 实证设计=方法论的另一面 |
-| Econometrician | econometrician.md | 统计问题=~25%拒稿原因 |
+GM 在 Phase 0 确定本次评审使用的研究范式。可用范式存放在 `prompts/` 子目录中：
 
-**一般专家 — 每人3票：**
-| 角色 | 文件 | 权重根据 |
-|------|------|---------|
-| Devil Reviewer | devil-reviewer.md | 跨维度fatal flaw检测 |
-| Domain Expert Finance | domain-expert-finance.md | 理论贡献+机制审查 |
-| Literature Scout | literature-scout.md | 文献定位 |
-| Reproducibility Auditor | reproducibility-auditor.md | 数据复现 |
+| 范式目录 | 名称 | 状态 |
+|---------|------|------|
+| `economics-finance/` | 实证经济学与金融 | ✅ 可用 |
+| `clinical-epidemiology/` | 临床与流行病学 | ✅ 可用 |
+| `cs-ai/` | 计算机科学与 AI | ✅ 可用 |
+| `experimental-behavioral/` | 实验与行为科学 | ✅ 可用 |
+| `natural-science-engineering/` | 自然科学与工程 | ✅ 可用 |
+| `biology-omics/` | 生物与组学科学 | ✅ 可用 |
 
-**投票力分布：** 核心 3×5=15 (56%) / 一般 4×3=12 (44%)
+> 范式选择指南见 `paradigm_role_structure.md` 的 §1.4 范式选择指南。
+
+#### 边界案例判定（混合方法论）
+
+| 论文类型 | 方法论核心 | 选择 | 理由 |
+|----------|----------|------|------|
+| 计算社会科学（NLP + 行为分析） | 若核心贡献是 NLP 模型 | `cs-ai` | 审核 ML 管线质量 |
+| 计算社会科学（NLP + 行为分析） | 若核心贡献是行为发现 | `experimental-behavioral` | 审核构念效度和样本 |
+| 生物信息 + 深度学习 | 若核心是新算法 | `cs-ai` | 审核消融/基线公平 |
+| 生物信息 + 深度学习 | 若核心是生物发现 | `biology-omics` | 审核正交验证/FDR |
+| 数字健康（可穿戴 + RCT） | 若有临床终点 | `clinical-epidemiology` | 审核 ITT/CONSORT |
+| 数字健康（可穿戴 + RCT） | 若重点在传感器设计 | `natural-science-engineering` | 审核测量不确定度 |
+| 计量经济 + ML 预测 | 若核心是因果推断 | `economics-finance` | 审核内生性/IV |
+| 计量经济 + ML 预测 | 若核心是预测精度 | `cs-ai` | 审核 test leakage |
+| 材料学 + 计算模拟 | 若有实验验证 | `natural-science-engineering` | 审核仿真-实验一致性 |
+| 神经科学 + 影像 | 看是否有组学数据 | `biology-omics` 或 `experimental-behavioral` | 有基因/蛋白→生物；纯行为→行为 |
+
+> **原则**：看方法论核心（statistical engine），不看学科归属。若仍难以判断，选对核心 claim 审查最严格的范式。
+
+### 1.2 专家分层（动态加载）
+
+每个范式目录下有 `roster.md`，定义该范式的专家配置。三层结构：
+
+**Layer 2 — 核心专家（方法论三角）— 每人5票：**
+- 读取 `prompts/{paradigm}/roster.md` 中 `core` 部分
+- 通常 3 个角色：Methodology Critic + Experiment Designer + Statistician（名称可能随范式变化）
+
+**Layer 1 + Layer 3 — 一般专家 — 每人3票：**
+- 读取 `prompts/{paradigm}/roster.md` 中 `general` + `optional` 部分
+- 通常 4-5 个角色，含 Devil Reviewer、Domain Expert、Literature Scout、Reproducibility Auditor
+- 可选角色（如 Ethics Auditor）的启用由 roster.md 配置
+
+**投票力分布：** 核心 3×5=15 / 一般 N×3 / 总票数随角色数动态计算
 
 **Devil Reviewer特权：** FATAL标记的提案自动+3分
+
+**共享输出格式：** 所有角色的输出格式模板在 `prompts/_shared/` 中
+
+**评审标准体系：**
+- Reproducibility Auditor: `Practical Checks (Graded Rubric)` — ✅/⚠️/❌ 三级评分，量表见 `_shared/grading-scale.md`
+- Devil Reviewer: `Red Flags` — 范式特定致命缺陷标记
+- 其余角色: `Rejection Triggers` — ❌ FATAL / ⚠️ MAJOR 二元红线，来源标注权威标准
 
 ### 1.2 裁决者
 
@@ -43,9 +78,9 @@
 ```
 输入：知识包（议题材料 + 相关文件）
      ↓
-7位专家各自独立生成3个提案
+N位专家各自独立生成3个提案
      ↓
-产出：21个提案（每个含ID/标题/优先级/详情/行动）
+产出：N×3个提案（每个含ID/标题/优先级/详情/行动）
 ```
 
 **规则：**
@@ -84,7 +119,7 @@ GM执行精炼：
   3. 拆分混合了多个独立问题的提案
   4. 安全审查：标记任何涉及信息泄露风险的提案
      ↓
-产出：精炼后的提案列表（通常15-18个 → 10-14个）
+产出：精炼后的提案列表（通常压缩 30-40%）
 ```
 
 ### Phase 4: 加权投票 + GM裁决
@@ -117,7 +152,7 @@ GM综合票数+讨论记录+安全考量做最终裁决
 **时机：** 首次正式评审前 + 每加入新专家角色时
 **做法：**
 1. 准备一份"calibration document"——包含已知优缺点的研究设计方案
-2. 7位专家独立评审（和正式Phase 1相同流程）
+2. N位专家独立评审（和正式Phase 1相同流程）
 3. GM比对所有输出：
    - 哪些已知缺陷被发现了？哪些漏掉了？（检出率）
    - 专家之间对同一问题的判断是否一致？（inter-rater agreement）
@@ -126,7 +161,7 @@ GM综合票数+讨论记录+安全考量做最终裁决
 5. calibration记录保存到 `cache/calibration-log.json`
 
 **Cochrane的发现：** inter-rater agreement依赖于审稿人对（κ range 0.38-1.0），
-事前校准可以显著缩小分歧。我们的目标：确保7位专家在"什么算P0/P1/P2"上有共识。
+事前校准可以显著缩小分歧。我们的目标：确保所有专家在"什么算P0/P1/P2"上有共识。
 
 ### 3.2 三层事后评议
 
@@ -176,10 +211,23 @@ VETOED    — GM否决，附原因
 **Step 4: 记录到 `.memory.md`**
 
 ### 3.3 专家记忆文件（.memory.md）
-每位专家维护独立的学习记忆文件（对标TAVB导师带教的持续反馈）：
+每位专家维护独立的学习记忆文件（对标TAVB导师带教的持续反馈）。
+
+**文件路径规范（按范式隔离）：**
+```
+cache/memory/{paradigm}/{role-name}.memory.md
+```
+> 同名角色（如 methodology-critic）在不同范式下是完全不同的人设，记忆不能混用。
+
+**模板**：`templates/expert-memory.md`（含范式和角色元信息字段）。
 
 ```markdown
 # [Expert Name] — Learning Memory
+
+## 元信息
+- **范式**: economics-finance
+- **角色**: methodology-critic
+- **版本**: 1.0
 
 ## 累积统计
 - 总提案: N | 采纳: X (Y%) | 合并: A | 精炼掉: B | 忽略: C
@@ -210,18 +258,13 @@ VETOED    — GM否决，附原因
   "sessions": [
     {
       "date": "2026-03-01",
+      "paradigm": "economics-finance",
       "topic": "Phase 1 experiment design review",
-      "proposals_total": 21,
+      "proposals_total": "N×3",
       "proposals_after_refinement": 12,
       "proposals_accepted": 8,
       "expert_stats": {
-        "methodology-critic": {"proposed": 3, "accepted": 3, "votes_received": 12},
-        "experiment-designer": {"proposed": 3, "accepted": 2, "votes_received": 10},
-        "econometrician": {"proposed": 3, "accepted": 2, "votes_received": 9},
-        "devil-reviewer": {"proposed": 3, "accepted": 1, "fatal_used": 1, "votes_received": 7},
-        "domain-expert": {"proposed": 3, "accepted": 0, "votes_received": 3},
-        "literature-scout": {"proposed": 3, "accepted": 0, "votes_received": 2},
-        "reproducibility-auditor": {"proposed": 3, "accepted": 0, "votes_received": 1}
+        "{role-from-roster}": {"proposed": 3, "accepted": 3, "votes_received": 12}
       }
     }
   ]
@@ -247,7 +290,9 @@ VETOED    — GM否决，附原因
 ├── 相关参考文献摘要
 ├── 安全边界清单（不可泄露的内容）
 ├── 上次评审行动计划完成情况（如有）
-└── 数据/结果快照（如有）
+├── 数据/结果快照（如有）
+├── code-architecture-digest.md（如有代码库 + GitNexus 已索引，所有专家共享）
+└── calibration-template.md（范式对应的校准模板，含 FATAL/MAJOR/MINOR 植入缺陷）
 ```
 
 **重要：知识包不包含其他专家的历史提案或评审记录（防止锚定）**
@@ -256,57 +301,78 @@ VETOED    — GM否决，附原因
 
 ## 5. 执行实现
 
-### 5.0 Phase 0: 知识包预生成（含 GitNexus 代码架构）
+### 5.0 Phase 0: 范式选择 + 知识包预生成
 
-> 2026-03-04 新增。GitNexus 集成在知识包生成层，不在编排层。
+> v2.0 更新：支持多范式。GitNexus 集成在知识包生成层，不在编排层。
 
-**Phase 1 启动前**，运行知识包生成脚本：
+**Step 1: 范式选择**
+
+GM 根据论文的方法论核心确定范式（参考范式选择指南），记录在知识包头部：
+```
+paradigm: economics-finance   # 或 cs-ai, clinical-epidemiology 等
+```
+
+**Step 2: 知识包生成**
 
 ```bash
-python3 review-board/scripts/build-knowledge.py --topic "{本次评审议题}"
+python3 scripts/build-knowledge.py --topic "{议题}" --paradigm "{范式名}"
 ```
 
 脚本自动完成（5 步流程）：
 1. 跨语言关键词提取（中文议题 → 英文代码关键词，Sonnet LLM）
 2. GitNexus 查询（关键词 → 相关代码符号/执行流）
 3. 深度展开（关键函数的 blast radius）
-4. 角色过滤（仅 Reproducibility Auditor 需要）
+4. 角色过滤（按范式 roster 决定哪些角色需要附加信息）
 5. 格式化输出
 
 **产出文件：**
-- `review-board/cache/code-architecture-digest.md` — Reproducibility Auditor 专用附录
-- `review-board/cache/build-knowledge-log.json` — 运行日志
+- `cache/code-architecture-digest.md` — 注入知识包，所有专家共享（使用指南见 `_shared/code-context-guide.md`）
+- `cache/build-knowledge-log.json` — 运行日志
 
-**Phase 1 spawn Reproducibility Auditor 时**，读取 `code-architecture-digest.md` 作为知识包附录：
+`--paradigm` 缺省时默认 `economics-finance`（向后兼容）。
+
+**Step 3: 加载 roster**
+
+读取 `prompts/{paradigm}/roster.md`，获取：
+- 激活的角色列表（core + general + 启用的 optional）
+- 每个角色的 prompt 文件路径
+- 投票权重
+
+### 5.1 Sub-Agent调度（动态）
+
 ```
-指令 = reproducibility-auditor.md + 知识包 + code-architecture-digest.md 内容 + "输出3个提案，只回复JSON"
-```
+Phase 0: GM 确认范式 → 加载 roster → 运行 build-knowledge.py
+         N = len(激活角色列表)   // 通常 7 或 8
 
-其他 6 位专家的指令不变（不含 code architecture digest）。
-
-如果脚本执行失败或 GitNexus 未索引，Reproducibility Auditor 按原方式工作（向后兼容）。
-
-### 5.1 Sub-Agent调度
-
-```
-Phase 1: spawn 7个sub-agent（并行），每个角色一个
-         指令 = 角色prompt + 知识包 + "输出3个提案，只回复JSON"
-         ⚠️ Reproducibility Auditor 额外附加 code-architecture-digest.md（见 5.0）
+Phase 1: spawn N 个 sub-agent（并行），每个角色一个
+         for role in roster:
+           指令 = prompts/{paradigm}/{role.file}
+                + _shared/output-format-phase1.md
+                + 知识包
+                + "输出3个提案，只回复JSON"
+           if role.file == 'reproducibility-auditor.md':
+             指令 += code-architecture-digest.md（若存在）
          
-Phase 2: spawn 7个sub-agent（并行）
-         指令 = 角色prompt + 所有提案(随机序,匿名) + "对每个非自己的提案评论"
+Phase 2: spawn N 个 sub-agent（并行）
+         指令 = 角色prompt + _shared/output-format-phase2.md
+              + 所有提案(随机序,匿名) + "对每个非自己的提案评论"
          
 Phase 3: GM自己执行（不spawn）
          合并/去重/淘汰/安全审查
          
-Phase 4: spawn 7个sub-agent（并行）
-         指令 = 角色prompt + 精炼提案列表(随机序) + "投X票"
+Phase 4: spawn N 个 sub-agent（并行）
+         for role in roster:
+           if role.category == 'core':
+             指令 += _shared/output-format-phase4-core.md
+           else:
+             指令 += _shared/output-format-phase4-general.md
+         指令 += 精炼提案列表(随机序) + "投X票"
          GM综合裁决
 ```
 
 ### 5.2 成本估算
-- 每阶段7个sub-agent × ~2000 token/agent = ~14K token
-- 4阶段 × 14K = ~56K token + GM综合 ~10K = ~66K token
+- 每阶段 N 个 sub-agent × ~2000 token/agent（N 通常 7-8）
+- 4阶段 × N×2K = ~56-64K token + GM综合 ~10K ≈ ~66-74K token
 - 约 $2-3/次评审（Opus定价）
 
 ### 5.3 静默原则
