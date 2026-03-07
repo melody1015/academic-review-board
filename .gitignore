@@ -1,1 +1,19 @@
+# OS
+.DS_Store
+
+# GitNexus index
 .gitnexus
+
+# Real review sessions (may contain sensitive paper content)
+sessions/
+
+# Cache (generated, not needed in repo)
+cache/
+
+# Binary documents (papers, manuscripts)
+*.pdf
+*.docx
+
+# Python
+__pycache__/
+*.pyc

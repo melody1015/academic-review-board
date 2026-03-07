@@ -96,7 +96,7 @@ Experts are loaded dynamically from `prompts/{paradigm}/roster.md`. Each paradig
 
 ### Session 002: Complete Paper Review
 
-**Input**: An empirical finance paper claiming that a novel timing variable predicts cross-sectional stock returns with ρ=0.62 (p<0.001) and perfect quintile monotonicity.
+**Input**: An empirical finance paper claiming that a novel timing variable predicts cross-sectional stock returns with high statistical significance and monotonic portfolio sorts.
 
 **Result**: All 7 experts independently flagged the same fatal flaw — the core variable was defined using future price data (information unavailable at the time of the investment decision), creating a **mechanical tautological correlation** with forward returns. The impressive statistics were an artifact of the variable construction, not a genuine predictive relationship.
 
