@@ -145,6 +145,8 @@ Stage 4 ─ PRE-SUBMIT     "Will Reviewer 2 kill this?"
 ### Prerequisites
 - Any LLM API access (Claude, GPT-4, etc.) or [OpenClaw](https://github.com/openclaw/openclaw) for agent orchestration
 - Python 3.10+ (for knowledge pack generator)
+- LibreOffice (for DOC/DOCX/TEX → PDF conversion)
+- PyMuPDF + python-docx (optional, for automatic text/table/figure extraction)
 - [GitNexus](https://github.com/abhigyanpatwari/GitNexus) (optional, for code architecture analysis)
 
 ### API Key / OAuth Setup
@@ -176,6 +178,9 @@ Add them to your shell profile (`~/.zshrc` / `~/.bashrc`) for persistence.
 git clone https://github.com/melody1015/academic-review-board.git
 cd academic-review-board
 
+# Optional extractors (for auto figure/table/text ingestion)
+pip install PyMuPDF python-docx
+
 # Copy to your research project
 mkdir -p /path/to/your-project/review-board/{sessions,cache}
 cp -r prompts/ scripts/ templates/ /path/to/your-project/review-board/
@@ -189,21 +194,28 @@ cp -r prompts/ scripts/ templates/ /path/to/your-project/review-board/
 ### Run a Review Session
 
 ```bash
-# 1. (Optional) Generate code architecture context
-cd /path/to/your-project
-gitnexus analyze                    # Index your codebase
-python3 review-board/scripts/build-knowledge.py --topic "Your review topic"
+cd /path/to/your-project/review-board
 
-# 2. Prepare knowledge pack
-# Copy templates/knowledge-pack-template.md → review-board/sessions/session-NNN/knowledge-pack.md
-# Fill in: paper summary, key questions, security boundaries
-
-# 3. Run 4-phase protocol (via OpenClaw or manually)
-# Phase 1: Spawn 7 agents with role prompt + knowledge pack
-# Phase 2: Collect proposals, randomize, anonymize, spawn 7 agents for cross-review
-# Phase 3: GM merges/prunes/security-checks
-# Phase 4: Spawn 7 agents to vote, GM makes final ruling
+# Step A: initialize a session from source files (doc/pdf/tex/markdown)
+python3 scripts/run_review.py \
+  --session ECO-001 \
+  --paradigm economics-finance \
+  --files ../drafts/paper.docx ../drafts/appendix.pdf \
+  --topic "Pre-submission full paper review"
 ```
+
+This command now does **Step 0.5 automatically**:
+- converts source files to PDF
+- extracts text/sections/tables/figures
+- writes `cache/paper-figure-pack.json` + `cache/paper-figure-pack.md`
+- injects extracted figure/table context into `sessions/{id}/knowledge-pack.md`
+
+Then run the 4-phase board protocol (OpenClaw/manual) using that knowledge pack.
+
+Optional flags:
+- `--skip-assets` → skip automatic figure/table extraction
+- `--figures-dir <dir>` → set custom figure folder
+- `--fill-descriptions <json>` → inject visual descriptions for conceptual figures
 
 See [prompts/orchestration.md](prompts/orchestration.md) for the full protocol.
 

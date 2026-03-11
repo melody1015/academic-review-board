@@ -9,13 +9,16 @@ Academic Review Board — Review Launcher
 功能:
   1. 在 sessions/{session-id}/ 创建会话目录
   2. 自动发现并转换 DOCX/DOC/TEX → PDF (via LibreOffice)
-  3. 生成知识包模板 (knowledge-pack.md) 供填写或 AI 填充
-  4. 调用 build-knowledge.py 生成代码架构摘要 (如有 GitNexus)
-  5. 输出最终评审报告为 PDF
+  3. Step 0.5 自动抽取论文章节/图/表 → cache/paper-figure-pack.{json,md}
+  4. 生成知识包模板 (knowledge-pack.md)，自动注入图表资产摘要
+  5. 调用 build-knowledge.py 生成代码架构摘要 (如有 GitNexus)
+  6. 输出最终评审报告为 PDF
 
 依赖:
   - LibreOffice (brew install --cask libreoffice)
   - Python 3.10+
+  - PyMuPDF (PDF 图表/文本提取，可选)
+  - python-docx (DOCX 图表/文本提取，可选)
 
 目录结构 (运行后):
   sessions/
@@ -41,6 +44,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 REPO_ROOT = SCRIPT_DIR.parent
 SESSIONS_DIR = REPO_ROOT / "sessions"
 PROMPTS_DIR = REPO_ROOT / "prompts"
+CACHE_DIR = REPO_ROOT / "cache"
 
 SOFFICE = "/Applications/LibreOffice.app/Contents/MacOS/soffice"  # macOS path
 SUPPORTED_CONVERT = {".docx", ".doc", ".odt", ".pptx", ".xlsx", ".tex"}
@@ -98,9 +102,25 @@ def create_session_dir(session_id: str) -> Path:
     return session_dir
 
 
-def generate_knowledge_pack_template(session_dir: Path, session_id: str, paradigm: str, pdf_files: list[Path]):
+def generate_knowledge_pack_template(
+    session_dir: Path,
+    session_id: str,
+    paradigm: str,
+    pdf_files: list[Path],
+    figure_pack: str = "",
+):
     """Generate a knowledge-pack.md template pre-filled with session info."""
-    pdf_list = "\n".join(f"  - {p.name}" for p in pdf_files)
+    pdf_list = "\n".join(f"  - {p.name}" for p in pdf_files) if pdf_files else "  - (none)"
+    figure_section = ""
+    if figure_pack.strip():
+        figure_section = f"""
+---
+
+## 自动提取图表资产（Step 0.5）
+
+{figure_pack}
+"""
+
     content = f"""# 知识包 — Session {session_id}
 
 **议题**: [填写评审重点问题]
@@ -128,6 +148,7 @@ def generate_knowledge_pack_template(session_dir: Path, session_id: str, paradig
 ## Methods 摘要
 
 [提取关键实验/分析方法]
+{figure_section}
 
 ---
 
@@ -166,6 +187,51 @@ def run_build_knowledge(session_id: str, paradigm: str, topic: str):
             log(f"⚠️  build-knowledge.py: {(result.stderr or '')[:200]}")
     except subprocess.TimeoutExpired:
         log("⚠️  build-knowledge.py timeout, skipping")
+
+
+def run_prepare_assets(
+    source_file: Path,
+    figures_dir: str | None = None,
+    fill_descriptions: str | None = None,
+) -> str:
+    """Run prepare-review-assets.py to auto-extract sections/tables/figures."""
+    script = REPO_ROOT / "scripts" / "prepare-review-assets.py"
+    if not script.exists():
+        log("⚠️  prepare-review-assets.py not found, skipping asset extraction")
+        return ""
+
+    cmd = [sys.executable, str(script), str(source_file)]
+    if figures_dir:
+        cmd += ["--figures-dir", figures_dir]
+
+    # If caller doesn't specify, auto-use cache/figure-descriptions.json when present
+    desc_file = Path(fill_descriptions).expanduser() if fill_descriptions else (CACHE_DIR / "figure-descriptions.json")
+    if desc_file.exists():
+        cmd += ["--fill-descriptions", str(desc_file)]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            cwd=str(REPO_ROOT),
+        )
+        if result.returncode == 0:
+            log("✅ prepare-review-assets.py completed")
+        else:
+            log(f"⚠️  prepare-review-assets.py: {(result.stderr or result.stdout or '')[:200]}")
+    except subprocess.TimeoutExpired:
+        log("⚠️  prepare-review-assets.py timeout, skipping")
+
+    pack_md = CACHE_DIR / "paper-figure-pack.md"
+    if not pack_md.exists():
+        return ""
+
+    content = pack_md.read_text(encoding="utf-8").strip()
+    if content:
+        log(f"📊 Auto assets extracted: {len(content)} chars")
+    return content
 
 
 def convert_report_to_pdf(session_dir: Path, soffice: str) -> Path | None:
@@ -217,6 +283,21 @@ def main():
         "--topic",
         default="Pre-submission full paper review",
         help="Review topic (used for build-knowledge.py keyword extraction)",
+    )
+    parser.add_argument(
+        "--skip-assets",
+        action="store_true",
+        help="Skip automatic paper asset extraction (sections/tables/figures)",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        default=None,
+        help="Optional figures directory passed to prepare-review-assets.py",
+    )
+    parser.add_argument(
+        "--fill-descriptions",
+        default=None,
+        help="Optional visual description JSON for conceptual figures",
     )
     parser.add_argument(
         "--finalize",
@@ -295,8 +376,23 @@ def main():
         else:
             log(f"  ⏭️  Skipping unsupported format: {src.name}")
 
-    # Generate knowledge pack template
-    kp_path = generate_knowledge_pack_template(session_dir, session_id, paradigm, pdf_files)
+    # Step 0.5: auto extract sections/tables/figures from the first input paper
+    figure_pack = ""
+    if input_files and not args.skip_assets:
+        figure_pack = run_prepare_assets(
+            source_file=input_files[0],
+            figures_dir=args.figures_dir,
+            fill_descriptions=args.fill_descriptions,
+        )
+
+    # Generate knowledge pack template (auto-inject figure/table pack if available)
+    kp_path = generate_knowledge_pack_template(
+        session_dir,
+        session_id,
+        paradigm,
+        pdf_files,
+        figure_pack=figure_pack,
+    )
 
     # Run build-knowledge.py (optional, for code repos)
     run_build_knowledge(session_id, paradigm, args.topic)
@@ -309,6 +405,8 @@ def main():
         "created": datetime.now().isoformat(),
         "input_files": [str(f) for f in input_files],
         "pdf_files": [str(f) for f in pdf_files],
+        "auto_assets_enabled": not args.skip_assets,
+        "figure_pack_chars": len(figure_pack),
         "status": "SETUP_COMPLETE",
     }
     write_session_meta(session_dir, meta)
@@ -318,6 +416,7 @@ def main():
     print(f"✅ Session {session_id} initialized")
     print(f"   Paradigm: {paradigm}")
     print(f"   PDFs ready: {len(pdf_files)}")
+    print(f"   Auto assets: {'on' if not args.skip_assets else 'off'} ({len(figure_pack)} chars)")
     print(f"\n📋 NEXT STEPS:")
     print(f"   1. Review PDFs in:  {session_dir}/input_pdf/")
     print(f"   2. Fill in knowledge pack: {kp_path}")
