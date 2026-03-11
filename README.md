@@ -296,7 +296,7 @@ If you use this in your research, please cite:
 
 ```bibtex
 @software{song2026academic,
-  author = {Song, Zixu},
+  author = {song, zishee},
   title = {Academic Review Board: Multi-Agent Peer Review for Research Papers},
   year = {2026},
   url = {https://github.com/melody1015/academic-review-board}
