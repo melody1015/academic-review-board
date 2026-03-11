@@ -147,6 +147,28 @@ Stage 4 ─ PRE-SUBMIT     "Will Reviewer 2 kill this?"
 - Python 3.10+ (for knowledge pack generator)
 - [GitNexus](https://github.com/abhigyanpatwari/GitNexus) (optional, for code architecture analysis)
 
+### API Key / OAuth Setup
+
+Choose one path:
+
+1. **OpenClaw (recommended)**
+```bash
+# Interactive auth (OAuth or API key per provider)
+openclaw models auth login
+```
+Auth profiles are stored under `~/.openclaw/agents/<agent>/agent/auth-profiles.json`.
+
+2. **Direct API keys via shell env**
+```bash
+# Example (pick the provider you actually use)
+export ANTHROPIC_API_KEY="your_key"
+export OPENAI_API_KEY="your_key"
+export GEMINI_API_KEY="your_key"
+```
+Add them to your shell profile (`~/.zshrc` / `~/.bashrc`) for persistence.
+
+> Never commit real keys into this repo.
+
 ### Setup
 
 ```bash

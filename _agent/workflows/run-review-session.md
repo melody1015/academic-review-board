@@ -27,7 +27,7 @@ Ask the user (or infer from context):
 
 // turbo
 ```bash
-python3 /Users/songzixu/academic-review-board/scripts/run_review.py \
+python3 scripts/run_review.py \
   --session {SESSION_ID} \
   --paradigm {PARADIGM} \
   --files {FILE_PATHS} \
@@ -45,7 +45,7 @@ This will:
 
 Open each PDF in `sessions/{SESSION_ID}/input_pdf/` using the browser subagent:
 ```
-file:///Users/songzixu/academic-review-board/sessions/{SESSION_ID}/input_pdf/{filename}.pdf
+sessions/{SESSION_ID}/input_pdf/{filename}.pdf
 ```
 
 Extract for knowledge pack:
@@ -109,7 +109,7 @@ Save review output as `sessions/{SESSION_ID}/review-report.md`, then:
 
 // turbo
 ```bash
-python3 /Users/songzixu/academic-review-board/scripts/run_review.py \
+python3 scripts/run_review.py \
   --session {SESSION_ID} \
   --finalize
 ```
