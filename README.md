@@ -2,7 +2,7 @@
 
 **AI-powered multi-agent peer review for research papers — catch fatal flaws before submission.**
 
-> N specialized expert agents (paradigm-adaptive) + 4-phase deliberation protocol + weighted voting. 8 paradigms supported. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
+> N specialized expert agents (paradigm-adaptive) + 4-phase deliberation protocol + weighted voting. 10 paradigms supported. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
 
 ---
 
@@ -93,6 +93,8 @@ Experts are loaded dynamically from `prompts/{paradigm}/roster.md`. Each paradig
 | `biology-omics` | Bioinformatician | 基因组学、转录组、蛋白质组 |
 | `qualitative-research` | Qualitative Analyst | 社会学、人类学、教育学、护理学 |
 | `normative-policy` | Normative Theorist | 社会福利、公共政策、政治哲学 |
+| `systematic-review` | Meta-Analyst | 系统综述、Meta 分析、Cochrane/Campbell |
+| `mixed-methods` | Integration Analyst | 混合方法、教育学、护理学、公共卫生 |
 
 ## Real Results
 
@@ -142,6 +144,65 @@ Stage 4 ─ PRE-SUBMIT     "Will Reviewer 2 kill this?"
 
 > **Rule of thumb**: If your research involves writing code, run at least Stage 2 before you start coding.
 
+## Installation & Upgrade
+
+### Fresh Install
+
+```bash
+git clone https://github.com/melody1015/academic-review-board.git
+cd academic-review-board
+```
+
+### Upgrade from Previous Version
+
+```bash
+cd academic-review-board
+git pull origin main
+```
+
+To see what changed between versions:
+
+```bash
+git log --oneline v2.0..v2.1   # changes from v2.0 to v2.1
+```
+
+### Version History
+
+| Version | Paradigms | What's New |
+|---------|-----------|-----------|
+| `v1.0` | 6 | Initial release — empirical paradigms (economics-finance, clinical-epidemiology, cs-ai, experimental-behavioral, natural-science-engineering, biology-omics) |
+| `v2.0` | 8 | + Qualitative Research, Normative & Policy Argumentation |
+| `v2.1` | 10 | + Systematic Review & Meta-Analysis, Mixed Methods |
+
+To pin a specific version: `git checkout v2.1`
+
+## Coverage & Known Limitations
+
+### ✅ What's Covered (10 paradigms, ~90% of academic papers)
+
+The 10 paradigms cover the vast majority of academic research across all major methodological traditions:
+
+- **Quantitative empirical** (6 paradigms) — hypothesis testing, causal inference, statistical modeling across natural sciences, social sciences, engineering, medicine, and CS/AI
+- **Qualitative** — interview studies, ethnography, grounded theory, phenomenology, case studies
+- **Mixed methods** — convergent, sequential, embedded designs with integration quality assessment
+- **Systematic review & meta-analysis** — PRISMA 2020, Cochrane/Campbell protocols, publication bias, heterogeneity
+- **Normative & policy** — value-premise argumentation, policy feasibility, distributional impact
+
+### ⚠️ Not Yet Fully Covered
+
+The following research types can use the **closest available paradigm** as an approximation, but may miss domain-specific evaluation criteria. If you work in these areas and would like dedicated paradigm support, please [open an issue](https://github.com/melody1015/academic-review-board/issues).
+
+| Research Type | Closest Paradigm | What's Missing |
+|--------------|-----------------|----------------|
+| **Design Science** (IS artifact construction, Hevner's 7 guidelines) | `cs-ai` | Artifact evaluation framework, design cycle assessment, utility demonstration criteria |
+| **Case Study Research** (Yin/Eisenhardt single/multiple case) | `qualitative-research` | Case selection logic audit, literal vs theoretical replication, cross-case pattern matching |
+| **Action Research** (intervention-reflection cycles) | `qualitative-research` | Cycle quality assessment, researcher-as-participant dual role, democratic validity |
+| **Formal/Mathematical Modeling** (pure theorem-proof, axiomatic systems) | `economics-finance` or `cs-ai` | Axiom reasonableness review, proof correctness checking, numerical experiment design for theoretical models |
+| **Humanities & Hermeneutics** (literary criticism, historical analysis, philosophical argumentation) | `normative-policy` + `qualitative-research` | Textual interpretation rigor, historiographic method, hermeneutic circle assessment |
+| **Computational Simulation** (agent-based models, climate models, CFD) | `natural-science-engineering` | Parameter sensitivity analysis, numerical convergence verification, model validation against empirical benchmarks |
+
+> **Design principle**: Paradigm selection follows "methodological core, not disciplinary affiliation." A psychology paper using fMRI should use `biology-omics` or `clinical-epidemiology`, not `experimental-behavioral`. See `prompts/orchestration.md` for the full selection guide.
+
 ## Quick Start
 
 ### Prerequisites
@@ -172,15 +233,6 @@ export GEMINI_API_KEY="your_key"
 Add them to your shell profile (`~/.zshrc` / `~/.bashrc`) for persistence.
 
 > Never commit real keys into this repo.
-
-### Upgrade
-
-```bash
-cd academic-review-board
-git pull origin main
-```
-
-Tagged releases: `v1.0` (6 paradigms) · `v2.0` (8 paradigms). To pin a specific version: `git checkout v2.0`.
 
 ### Setup
 
