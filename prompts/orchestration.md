@@ -19,6 +19,8 @@ GM 在 Phase 0 确定本次评审使用的研究范式。可用范式存放在 `
 | `experimental-behavioral/` | 实验与行为科学 | ✅ 可用 |
 | `natural-science-engineering/` | 自然科学与工程 | ✅ 可用 |
 | `biology-omics/` | 生物与组学科学 | ✅ 可用 |
+| `qualitative-research/` | 质性研究 | ✅ 可用 |
+| `normative-policy/` | 规范性与政策论证 | ✅ 可用 |
 
 > 范式选择指南见 `paradigm_role_structure.md` 的 §1.4 范式选择指南。
 
@@ -36,6 +38,14 @@ GM 在 Phase 0 确定本次评审使用的研究范式。可用范式存放在 `
 | 计量经济 + ML 预测 | 若核心是预测精度 | `cs-ai` | 审核 test leakage |
 | 材料学 + 计算模拟 | 若有实验验证 | `natural-science-engineering` | 审核仿真-实验一致性 |
 | 神经科学 + 影像 | 看是否有组学数据 | `biology-omics` 或 `experimental-behavioral` | 有基因/蛋白→生物；纯行为→行为 |
+| 政策评估 + RCT | 若核心是因果效果估计 | `economics-finance` 或 `clinical-epidemiology` | 审核内生性/ITT |
+| 政策评估 + RCT | 若核心是政策建议/规范论证 | `normative-policy` | 审核论证链和价值前提 |
+| 质性 + 量化混合方法 | 若核心贡献是质性发现 | `qualitative-research` | 审核可信性框架 |
+| 质性 + 量化混合方法 | 若核心贡献是量化发现 | 对应实证范式 | 审核统计/因果推断 |
+| 教育/卫生政策实证 | 若用实验方法 | `experimental-behavioral` | 审核被试/效应量 |
+| 教育/卫生政策实证 | 若做规范性建议 | `normative-policy` | 审核论证链 |
+| 社会学/人类学田野研究 | 质性方法为主 | `qualitative-research` | 审核编码/饱和/可信性 |
+| 政治哲学/社会正义 | 规范论证为主 | `normative-policy` | 审核价值前提/论证逻辑 |
 
 > **原则**：看方法论核心（statistical engine），不看学科归属。若仍难以判断，选对核心 claim 审查最严格的范式。
 
