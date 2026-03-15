@@ -2,7 +2,7 @@
 
 **AI-powered multi-agent peer review for research papers — catch fatal flaws before submission.**
 
-> N specialized expert agents (paradigm-adaptive) + 4-phase deliberation protocol + weighted voting. 6 paradigms supported. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
+> N specialized expert agents (paradigm-adaptive) + 4-phase deliberation protocol + weighted voting. 8 paradigms supported. Built on insights from AgentReview (EMNLP 2024), MARG (Allen AI 2024), and PRE (CIKM 2024).
 
 ---
 
@@ -91,6 +91,8 @@ Experts are loaded dynamically from `prompts/{paradigm}/roster.md`. Each paradig
 | `experimental-behavioral` | Psychometrician | 心理学、教育、行为经济 |
 | `natural-science-engineering` | Metrologist | 物理、化学、材料、工程 |
 | `biology-omics` | Bioinformatician | 基因组学、转录组、蛋白质组 |
+| `qualitative-research` | Qualitative Analyst | 社会学、人类学、教育学、护理学 |
+| `normative-policy` | Normative Theorist | 社会福利、公共政策、政治哲学 |
 
 ## Real Results
 
@@ -170,6 +172,15 @@ export GEMINI_API_KEY="your_key"
 Add them to your shell profile (`~/.zshrc` / `~/.bashrc`) for persistence.
 
 > Never commit real keys into this repo.
+
+### Upgrade
+
+```bash
+cd academic-review-board
+git pull origin main
+```
+
+Tagged releases: `v1.0` (6 paradigms) · `v2.0` (8 paradigms). To pin a specific version: `git checkout v2.0`.
 
 ### Setup
 
