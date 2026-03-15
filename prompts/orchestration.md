@@ -21,6 +21,8 @@ GM 在 Phase 0 确定本次评审使用的研究范式。可用范式存放在 `
 | `biology-omics/` | 生物与组学科学 | ✅ 可用 |
 | `qualitative-research/` | 质性研究 | ✅ 可用 |
 | `normative-policy/` | 规范性与政策论证 | ✅ 可用 |
+| `systematic-review/` | 系统综述与 Meta 分析 | ✅ 可用 |
+| `mixed-methods/` | 混合方法 | ✅ 可用 |
 
 > 范式选择指南见 `paradigm_role_structure.md` 的 §1.4 范式选择指南。
 
@@ -46,6 +48,12 @@ GM 在 Phase 0 确定本次评审使用的研究范式。可用范式存放在 `
 | 教育/卫生政策实证 | 若做规范性建议 | `normative-policy` | 审核论证链 |
 | 社会学/人类学田野研究 | 质性方法为主 | `qualitative-research` | 审核编码/饱和/可信性 |
 | 政治哲学/社会正义 | 规范论证为主 | `normative-policy` | 审核价值前提/论证逻辑 |
+| 系统综述 + 原始数据分析 | 若核心是合成已有证据 | `systematic-review` | 审搜索/合成/偏倚 |
+| 系统综述 + 原始数据分析 | 若核心是新的一手分析 | 对应实证范式 | 审一手数据方法 |
+| 质性 + 量化（有意整合） | 两种方法有整合设计 | `mixed-methods` | 审整合质量 |
+| 质性 + 量化（无整合） | 各说各话 | 分别跑两个范式 | 无整合可审 |
+| 范围综述（Scoping review） | 系统搜索但不做 meta 分析 | `systematic-review` | 审搜索策略和报告质量 |
+| 伞状综述（Umbrella review） | 综述的综述 | `systematic-review` | 审搜索+纳入 SR 的质量评估 |
 
 > **原则**：看方法论核心（statistical engine），不看学科归属。若仍难以判断，选对核心 claim 审查最严格的范式。
 
