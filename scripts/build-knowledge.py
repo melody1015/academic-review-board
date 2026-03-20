@@ -120,7 +120,7 @@ def extract_code_keywords(topic: str) -> str:
 
     try:
         env = os.environ.copy()
-        env.pop("ANTHROPIC_API_KEY", None)  # 走 OAuth，不走 API key
+        env.pop("ANTHROPIC_API_KEY", None)  # 确保走 Max 订阅而非 API key
         r = subprocess.run(
             ["claude", "--print", "--model", "sonnet", prompt],
             capture_output=True, text=True, timeout=20, env=env,
